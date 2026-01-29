@@ -47,6 +47,9 @@ class BearTrapTemplates(commands.Cog):
         """)
         self.conn.commit()
 
+        # Migrate: Add mention_message, footer, and author columns if they don't exist
+        self._migrate_add_embed_text_fields()
+
         # Populate pre-built templates if none exist
         self.cursor.execute("SELECT COUNT(*) FROM notification_templates WHERE is_global = 1")
         if self.cursor.fetchone()[0] == 0:
@@ -54,6 +57,17 @@ class BearTrapTemplates(commands.Cog):
 
         # Always sync non-customized templates with latest defaults from bear_event_types.py
         self._sync_default_templates()
+
+    def _migrate_add_embed_text_fields(self):
+        """Add mention_message, footer, and author columns if they don't exist"""
+        self.cursor.execute("PRAGMA table_info(notification_templates)")
+        columns = [column[1] for column in self.cursor.fetchall()]
+
+        if 'mention_message' not in columns:
+            self.cursor.execute("ALTER TABLE notification_templates ADD COLUMN mention_message TEXT")
+            self.cursor.execute("ALTER TABLE notification_templates ADD COLUMN footer TEXT")
+            self.cursor.execute("ALTER TABLE notification_templates ADD COLUMN author TEXT")
+            self.conn.commit()
 
     def _sync_default_templates(self):
         """Sync non-customized templates with latest values from bear_event_types.py"""
@@ -102,8 +116,13 @@ class BearTrapTemplates(commands.Cog):
             notification_type = config.get("default_notification_type", 1)
             embed_desc = description
 
-            # Create embed title
-            embed_title = f"%i %n"
+            # Create embed title - only include time if event has variable times
+            has_variable_times = (
+                config.get("available_times") or  # Multiple time slots to choose from
+                config.get("time_slots") or       # Custom scheduling (like Bear Trap)
+                config.get("instances_per_cycle", 0) > 1
+            )
+            embed_title = f"%i %e %n" if has_variable_times else f"%i %n"
 
             # Repeat configuration based on event schedule type
             repeat_config = {}
@@ -183,7 +202,8 @@ class BearTrapTemplates(commands.Cog):
         self.cursor.execute("""
             SELECT template_id, template_name, event_type, description, notification_type,
                    default_times, embed_title, embed_description, embed_color,
-                   embed_image_url, embed_thumbnail_url, repeat_config, is_global, created_by
+                   embed_image_url, embed_thumbnail_url, repeat_config, is_global, created_by,
+                   mention_message, footer, author
             FROM notification_templates
             WHERE template_id = ?
         """, (template_id,))
@@ -206,18 +226,24 @@ class BearTrapTemplates(commands.Cog):
             "embed_thumbnail_url": row[10],
             "repeat_config": row[11],
             "is_global": row[12],
-            "created_by": row[13]
+            "created_by": row[13],
+            "mention_message": row[14],
+            "footer": row[15],
+            "author": row[16]
         }
 
     def update_template(self, template_id: int, embed_title: str, embed_description: str,
-                       embed_image_url: str, embed_thumbnail_url: str, user_id: int = None):
+                       embed_image_url: str, embed_thumbnail_url: str, mention_message: str = None,
+                       footer: str = None, author: str = None, user_id: int = None):
         """Update a template's embed settings"""
         self.cursor.execute("""
             UPDATE notification_templates
             SET embed_title = ?, embed_description = ?, embed_image_url = ?, embed_thumbnail_url = ?,
+                mention_message = ?, footer = ?, author = ?,
                 is_global = 0, created_by = COALESCE(created_by, ?)
             WHERE template_id = ?
-        """, (embed_title, embed_description, embed_image_url, embed_thumbnail_url, user_id, template_id))
+        """, (embed_title, embed_description, embed_image_url, embed_thumbnail_url,
+              mention_message, footer, author, user_id, template_id))
         self.conn.commit()
 
     def reset_template_to_default(self, template_id: int, event_type: str) -> bool:
@@ -239,12 +265,21 @@ class BearTrapTemplates(commands.Cog):
         thumbnail_url = config.get("thumbnail_url", "")
         description = config.get("description", "")
 
+        # Determine title format based on event type
+        has_variable_times = (
+            config.get("available_times") or
+            config.get("time_slots") or
+            config.get("instances_per_cycle", 0) > 1
+        )
+        embed_title = "%i %e %n" if has_variable_times else "%i %n"
+
         self.cursor.execute("""
             UPDATE notification_templates
             SET embed_image_url = ?, embed_thumbnail_url = ?, embed_description = ?,
-                embed_title = '%i %n', is_global = 1, event_type = ?, template_name = ?
+                embed_title = ?, mention_message = NULL, footer = NULL, author = NULL,
+                is_global = 1, event_type = ?, template_name = ?
             WHERE template_id = ?
-        """, (image_url, thumbnail_url, description, event_type, event_type, template_id))
+        """, (image_url, thumbnail_url, description, embed_title, event_type, event_type, template_id))
         self.conn.commit()
         return True
 
@@ -448,6 +483,16 @@ class TemplateEditModal(discord.ui.Modal, title="Edit Template"):
         )
         self.add_item(self.thumbnail_url_input)
 
+        self.mention_message_input = discord.ui.TextInput(
+            label="Mention Message (Optional)",
+            placeholder="Use {tag} for mention, %t for time, %n for name, %e for event time",
+            default=template.get("mention_message", ""),
+            style=discord.TextStyle.paragraph,
+            max_length=2000,
+            required=False
+        )
+        self.add_item(self.mention_message_input)
+
     async def on_submit(self, interaction: discord.Interaction):
         """Handle template update"""
         try:
@@ -457,6 +502,9 @@ class TemplateEditModal(discord.ui.Modal, title="Edit Template"):
                 self.description_input.value,
                 self.image_url_input.value or None,
                 self.thumbnail_url_input.value or None,
+                self.mention_message_input.value or None,
+                None,  # footer - not in UI yet, future use
+                None,  # author - not in UI yet, future use
                 interaction.user.id
             )
 
@@ -560,20 +608,19 @@ class TemplatePreviewView(discord.ui.View):
         sample_date = "Nov 29"
         sample_countdown = "10 minutes"
 
-        # Replace placeholder variables with sample values for preview
-        preview_title = template["embed_title"] or "Notification"
-        preview_title = preview_title.replace("%i", sample_emoji)
-        preview_title = preview_title.replace("%n", template["event_type"])
-        preview_title = preview_title.replace("%e", sample_time)
-        preview_title = preview_title.replace("%d", sample_date)
-        preview_title = preview_title.replace("%t", sample_countdown)
+        def replace_placeholders(text):
+            if not text:
+                return text
+            return (text.replace("%i", sample_emoji)
+                       .replace("%n", template["event_type"])
+                       .replace("%e", sample_time)
+                       .replace("%d", sample_date)
+                       .replace("%t", sample_countdown)
+                       .replace("{tag}", "@Role")
+                       .replace("@tag", "@Role"))
 
-        preview_desc = template["embed_description"] or "No description"
-        preview_desc = preview_desc.replace("%i", sample_emoji)
-        preview_desc = preview_desc.replace("%n", template["event_type"])
-        preview_desc = preview_desc.replace("%e", sample_time)
-        preview_desc = preview_desc.replace("%d", sample_date)
-        preview_desc = preview_desc.replace("%t", sample_countdown)
+        preview_title = replace_placeholders(template["embed_title"] or "Notification")
+        preview_desc = replace_placeholders(template["embed_description"] or "No description")
 
         notification_embed = discord.Embed(
             title=preview_title,
@@ -586,6 +633,19 @@ class TemplatePreviewView(discord.ui.View):
 
         if template["embed_thumbnail_url"]:
             notification_embed.set_thumbnail(url=template["embed_thumbnail_url"])
+
+        if template.get("footer"):
+            notification_embed.set_footer(text=replace_placeholders(template["footer"]))
+
+        if template.get("author"):
+            notification_embed.set_author(name=replace_placeholders(template["author"]))
+
+        if template.get("mention_message"):
+            info_embed.add_field(
+                name="Mention Message",
+                value=f"`{replace_placeholders(template['mention_message'])}`",
+                inline=False
+            )
 
         # Add edit button
         edit_button = discord.ui.Button(

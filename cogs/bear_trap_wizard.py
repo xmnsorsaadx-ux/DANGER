@@ -2074,12 +2074,44 @@ class WizardPreviewView(discord.ui.View):
 
     async def show(self, interaction: discord.Interaction):
         """Show preview of all notifications to be created"""
+
+        # Format mention description
+        mention_desc = "Not set"
+        if self.session.mention_type:
+            if self.session.mention_type == "everyone":
+                mention_desc = "@everyone"
+            elif self.session.mention_type.startswith("role_"):
+                role_id = int(self.session.mention_type.split("_")[1])
+                role = interaction.guild.get_role(role_id)
+                mention_desc = f"@{role.name}" if role else "Role"
+            elif self.session.mention_type.startswith("member_"):
+                member_id = int(self.session.mention_type.split("_")[1])
+                member = interaction.guild.get_member(member_id)
+                mention_desc = f"@{member.name}" if member else "Member"
+            elif self.session.mention_type == "none":
+                mention_desc = "No Mention"
+
+        # Format notification times description
+        notif_desc = "Default (10m, 5m, Time)"
+        if self.session.notification_type:
+            notif_map = {
+                1: "30m, 10m, 5m & Time",
+                2: "10m, 5m & Time",
+                3: "5m & Time",
+                4: "5m before only",
+                5: "At event time",
+                6: f"Custom: {self.session.custom_times}" if self.session.custom_times else "Custom"
+            }
+            notif_desc = notif_map.get(self.session.notification_type, "Unknown")
+
         embed = discord.Embed(
             title=f"{theme.listIcon} Preview: Notifications to Create",
             description=(
                 "Review the notifications that will be created.\n\n"
                 f"**Channel:** <#{self.session.channel_id}>\n"
-                f"**Timezone:** {self.session.timezone}\n\n"
+                f"**Timezone:** {self.session.timezone}\n"
+                f"**Mention:** {mention_desc}\n"
+                f"**Notification Times:** {notif_desc}\n\n"
                 "**Events:**"
             ),
             color=discord.Color.gold()
@@ -2388,9 +2420,9 @@ class WizardPreviewView(discord.ui.View):
                         'color': int(template_data.get('embed_color') or discord.Color.blue().value),
                         'image_url': template_data.get('embed_image_url') or event_config.get('image_url', ''),
                         'thumbnail_url': template_data.get('embed_thumbnail_url') or event_config.get('thumbnail_url', ''),
-                        'footer': None,
-                        'author': None,
-                        'mention_message': None
+                        'footer': template_data.get('footer'),
+                        'author': template_data.get('author'),
+                        'mention_message': template_data.get('mention_message')
                     }
                 else:
                     embed_data = {

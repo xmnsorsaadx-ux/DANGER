@@ -280,7 +280,7 @@ class BearTrapSchedule(commands.Cog):
 
             # Check if a board with same configuration already exists
             self.cursor.execute("""
-                SELECT board_id FROM notification_schedule_boards
+                SELECT id FROM notification_schedule_boards
                 WHERE guild_id = ? AND channel_id = ? AND board_type = ? AND target_channel_id = ?
             """, (guild_id, channel_id, board_type, target_channel_id))
             existing = self.cursor.fetchone()

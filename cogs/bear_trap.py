@@ -903,10 +903,12 @@ class BearTrap(commands.Cog):
                                             mention_message = mention_message.replace("%i", event_emoji)
                                             msg = await channel.send(mention_message)
                                             sent_message_ids.append(msg.id)
-                                        else:
-                                            mention_text = mention_text.replace("%t", time_text)
-                                            mention_text = mention_text.replace("{time}", time_text)
-                                            msg = await channel.send(mention_text)
+                                        else:  # Fallback: auto-generate from embed title
+                                            if embed.title:
+                                                mention_message = f"{mention_text} {embed.title}"
+                                            else:  # Fallback to bare mention if no title for some reason
+                                                mention_message = mention_text
+                                            msg = await channel.send(mention_message)
                                             sent_message_ids.append(msg.id)
                                     msg = await channel.send(embed=embed)
                                     sent_message_ids.append(msg.id)
@@ -2048,7 +2050,9 @@ class EventTypeSelectView(discord.ui.View):
                     "title": template_data.get("embed_title") or f"{self.selected_event_type} Notification",
                     "description": template_data.get("embed_description") or f"Get ready for {self.selected_event_type}! Only %t remaining.",
                     "color": int(template_data.get("embed_color") or 0x3498db),
-                    "footer": "Notification System",
+                    "footer": template_data.get("footer") or "Notification System",
+                    "author": template_data.get("author"),
+                    "mention_message": template_data.get("mention_message"),
                     "image_url": template_data.get("embed_image_url") or "",
                     "thumbnail_url": template_data.get("embed_thumbnail_url") or ""
                 }
@@ -2058,7 +2062,9 @@ class EventTypeSelectView(discord.ui.View):
                     "title": "Bear Trap Notification",
                     "description": "Get ready for Bear! Only %t remaining.",
                     "color": discord.Color.blue().value,
-                    "footer": "Notification System"
+                    "footer": "Notification System",
+                    "author": None,
+                    "mention_message": None
                 }
 
             # Sample values for preview
