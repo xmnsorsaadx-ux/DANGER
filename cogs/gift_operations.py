@@ -3768,7 +3768,7 @@ class GiftOperations(commands.Cog):
                     if existing_pending > 0:
                         results_text += f"{theme.warnIcon} Pending Validation: {existing_pending}\n"
                     
-                    results_text += f"\n📝 **Note:** A detailed summary has been posted in #{channel.name}"
+                    results_text += f"\n{theme.editListIcon} **Note:** A detailed summary has been posted in #{channel.name}"
                 else:
                     results_text += f"No gift codes found in the scanned messages."
                 
@@ -4208,12 +4208,12 @@ class GiftOperations(commands.Cog):
                 base_description = (
                     f"**Status for Alliance:** `{alliance_name}`\n"
                     f"{theme.upperDivider}\n"
-                    f"👥 **Total Members:** `{total_members}`\n"
+                    f"{theme.membersIcon} **Total Members:** `{total_members}`\n"
                     f"{theme.verifiedIcon} **Success:** `{success_count}`\n"
                     f"{theme.infoIcon} **Already Redeemed:** `{received_count}`\n"
                     f"{theme.refreshIcon} **Retrying:** `{len(retry_queue)}`\n"
                     f"{theme.deniedIcon} **Failed:** `{failed_count}`\n"
-                    f"⏳ **Processed:** `{processed_count}/{total_members}`\n"
+                    f"{theme.hourglassIcon} **Processed:** `{processed_count}/{total_members}`\n"
                     f"{theme.lowerDivider}\n"
                 )
                 
@@ -5763,7 +5763,7 @@ class OCRSettingsView(discord.ui.View):
             return _success, _message
 
         update_job = asyncio.create_task(update_task(selected_value))
-        initial_followup_message = "⏳ Your settings are being updated... Please wait."
+        initial_followup_message = f"{theme.hourglassIcon} Your settings are being updated... Please wait."
         try:
             progress_message = await interaction.followup.send(initial_followup_message, ephemeral=True)
         except discord.HTTPException as e:
