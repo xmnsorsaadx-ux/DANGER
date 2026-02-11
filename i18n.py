@@ -1155,6 +1155,18 @@ MESSAGES: Dict[str, Dict[str, str]] = {
         "en": "Choose when to send notifications:\n\n**30m, 10m, 5m & Time**\n• 30 minutes before\n• 10 minutes before\n• 5 minutes before\n• When time's up\n\n**10m, 5m & Time**\n• 10 minutes before\n• 5 minutes before\n• When time's up\n\n**5m & Time**\n• 5 minutes before\n• When time's up\n\n**Only 5m**\n• Only 5 minutes before\n\n**Only Time**\n• Only when time's up\n\n**Custom Times**\n• Set your own notification times",
         "ar": "اختر وقت ارسال الاشعارات:\n\n**30د، 10د، 5د والوقت**\n• قبل 30 دقيقة\n• قبل 10 دقائق\n• قبل 5 دقائق\n• عند انتهاء الوقت\n\n**10د، 5د والوقت**\n• قبل 10 دقائق\n• قبل 5 دقائق\n• عند انتهاء الوقت\n\n**5د والوقت**\n• قبل 5 دقائق\n• عند انتهاء الوقت\n\n**5د فقط**\n• قبل 5 دقائق فقط\n\n**الوقت فقط**\n• عند انتهاء الوقت فقط\n\n**اوقات مخصصة**\n• حدد اوقاتك الخاصة",
     },
+    "bear.editor.preview.time": {
+        "en": "30 minutes",
+        "ar": "30 دقيقة",
+    },
+    "bear.editor.preview.event": {
+        "en": "Event",
+        "ar": "حدث",
+    },
+    "bear.editor.preview.date_fallback": {
+        "en": "Dec 06",
+        "ar": "06 ديسمبر",
+    },
     "bear.editor.no_permission": {
         "en": "{icon} You don't have permission to edit notifications!",
         "ar": "{icon} ليس لديك صلاحية لتعديل الاشعارات!",
