@@ -1,0 +1,18 @@
+nohup: ignoring input
+Bot running Python 3.12.1
+Checking dependencies...
+Checking 16 requirements...
+✓ All requirements satisfied
+✓ All core imports successful
+Applied SSL context patch using certifi for default HTTPS connections.
+Update check skipped by default. Use --check-update or --autoupdate to enable.
+✓ Merged 209 additional translation keys
+  Total translation keys: 1610
+Database connections have been successfully established.
+All tables checked.
+[MONITOR] Cog loaded successfully
+Gift code API is not configured. Set GIFT_API_URL and GIFT_API_KEY to enable it.
+Logged in as WOS M#3936
+[CONTROL] Starting monitor...
+[CONTROL] Dual-API mode active (1 member/second)
+Activation messages sent to admin user.

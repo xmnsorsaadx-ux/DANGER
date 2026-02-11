@@ -1005,6 +1005,15 @@ if __name__ == "__main__":
     from discord.ext import commands
     import sqlite3
 
+    # عرض معلومات نظام الترجمة | Display translation system info
+    try:
+        from i18n import MESSAGES, SUPPORTED_LANGUAGES
+        print(f"{F.GREEN}✓ Translation system loaded{R}")
+        print(f"{F.GREEN}  Languages: {', '.join(SUPPORTED_LANGUAGES)}{R}")
+        print(f"{F.GREEN}  Translation keys: {len(MESSAGES)}{R}")
+    except Exception as e:
+        print(f"{F.YELLOW}! Translation system error: {e}{R}")
+
     class CustomBot(commands.Bot):
         async def on_error(self, event_name, *args, **kwargs):
             if event_name == "on_interaction":

@@ -186,6 +186,8 @@ class Alliance(commands.Cog):
                     f"└ {t('menu.settings.history_desc', lang)}\n\n"
                     f"{theme.supportIcon} **{t('menu.settings.support', lang)}**\n"
                     f"└ {t('menu.settings.support_desc', lang)}\n\n"
+                    f"{theme.globeIcon} **{t('language.settings.title', lang)}**\n"
+                    f"└ {t('menu.settings.language_desc', lang)}\n\n"
                     f"{theme.paletteIcon} **{t('menu.settings.theme', lang)}**\n"
                     f"└ {t('menu.settings.theme_desc', lang)}\n"
                     f"{theme.lowerDivider}"
@@ -248,6 +250,13 @@ class Alliance(commands.Cog):
                 emoji=f"{theme.paletteIcon}",
                 style=discord.ButtonStyle.primary,
                 custom_id="theme_settings",
+                row=3
+            ))
+            view.add_item(discord.ui.Button(
+                label=t("language.settings.title", lang),
+                emoji=f"{theme.globeIcon}",
+                style=discord.ButtonStyle.success,
+                custom_id="language_settings",
                 row=3
             ))
 
@@ -288,6 +297,8 @@ class Alliance(commands.Cog):
                     f"└ {t('menu.settings.history_desc', lang)}\n\n"
                     f"{theme.supportIcon} **{t('menu.settings.support', lang)}**\n"
                     f"└ {t('menu.settings.support_desc', lang)}\n\n"
+                    f"{theme.globeIcon} **{t('language.settings.title', lang)}**\n"
+                    f"└ {t('menu.settings.language_desc', lang)}\n\n"
                     f"{theme.paletteIcon} **{t('menu.settings.theme', lang)}**\n"
                     f"└ {t('menu.settings.theme_desc', lang)}\n"
                     f"{theme.lowerDivider}"
@@ -352,6 +363,13 @@ class Alliance(commands.Cog):
                 custom_id="theme_settings",
                 row=3
             ))
+            view.add_item(discord.ui.Button(
+                label=t("language.settings.title", lang),
+                emoji=f"{theme.globeIcon}",
+                style=discord.ButtonStyle.success,
+                custom_id="language_settings",
+                row=3
+            ))
 
             try:
                 await interaction.response.edit_message(embed=embed, view=view)
@@ -365,6 +383,11 @@ class Alliance(commands.Cog):
     async def on_interaction(self, interaction: discord.Interaction):
         if interaction.type == discord.InteractionType.component:
             custom_id = interaction.data.get("custom_id")
+            
+            # السماح لأزرار اللغة بالمرور لـ bot_operations | Allow language buttons to pass to bot_operations
+            if custom_id in ["language_settings", "language_set_en", "language_set_ar", "bot_ops_menu"]:
+                return  # اترك bot_operations يعالجها | Let bot_operations handle it
+            
             user_id = interaction.user.id
             self.c_settings.execute("SELECT id, is_initial FROM admin WHERE id = ?", (user_id,))
             admin = self.c_settings.fetchone()
